@@ -17,7 +17,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
   });
   const { errors } = formState;
   const queryClient = useQueryClient();
-  const { mutate, isLoading: isCreating } = useMutation({
+  const { mutate: createCabin, isLoading: isCreating } = useMutation({
     mutationFn: createEditCabin,
     onSuccess: () => {
       toast.success("Cabin is successfully created");
@@ -26,11 +26,27 @@ function CreateCabinForm({ cabinToEdit = {} }) {
     },
     onError: (err) => toast.error(err.message),
   });
+
+  const { mutate: editCabin, isLoading: isEditing } = useMutation({
+    mutationFn: ({ newCabinData, id }) => createEditCabin(newCabinData, id),
+    onSuccess: () => {
+      toast.success("Cabin is successfully edited");
+      queryClient.invalidateQueries({ queryKey: ["cabins"] });
+      reset();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const isWorking = isCreating || isEditing;
+
   function onSubmit(data) {
-    mutate({ ...data, image: data.image[0] });
+    const image = typeof data.image === "string" ? data.image : data.image[0];
+    if (idEditSession)
+      editCabin({ newCabinData: { ...data, image: image }, id: editId });
+    else createCabin({ ...data, image: image });
   }
   function onError(errors) {
-    console.log(errors);
+    // console.log(errors);
   }
   return (
     <Form onSubmit={handleSubmit(onSubmit, onError)}>
@@ -38,7 +54,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
         <Input
           type="text"
           id="name"
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("name", { required: "This feild is required" })}
         />
       </FormRow>
@@ -47,7 +63,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
         <Input
           type="number"
           id="maxCapacity"
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("maxCapacity", {
             required: "This feild is required",
             min: { value: 1, message: "Capacity should be at least 1" },
@@ -57,7 +73,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
 
       <FormRow label="Regular price" error={errors?.regularPrice?.message}>
         <Input
-          disabled={isCreating}
+          disabled={isWorking}
           type="number"
           id="regularPrice"
           {...register("regularPrice", {
@@ -72,7 +88,7 @@ function CreateCabinForm({ cabinToEdit = {} }) {
           type="number"
           id="discount"
           defaultValue={0}
-          disabled={isCreating}
+          disabled={isWorking}
           {...register("discount", {
             required: "This feild is required",
             validate: (value) =>
