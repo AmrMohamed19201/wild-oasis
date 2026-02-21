@@ -16,12 +16,15 @@ export async function deleteCabin(id) {
   }
 }
 export async function createEditCabin(newCabin, id) {
-  //https://hxfcgkrpdkujskwykgdi.supabase.co/storage/v1/object/public/cabin-images/cabin-001.jpg
+  const hasImagePath = newCabin.image?.startsWith?.(supabaseUrl);
+
   const imageName = `${Math.random()}-${newCabin.image.name}`.replaceAll(
     "/",
     "",
   );
-  const imagePath = `${supabaseUrl}/storage/v1/object/public/cabin-images/${imageName}`;
+  const imagePath = hasImagePath
+    ? newCabin.image
+    : `${supabaseUrl}/storage/v1/object/public/cabin-images/${imageName}`;
   //1. create/edit cabin
   let query = supabase.from("cabins");
   //A) create
